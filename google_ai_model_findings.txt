@@ -1,0 +1,3 @@
+Official Google Gemini API findings captured on 2026-08-14:
+The official model catalog lists stable Gemini 3-series models, including Gemini 3.6 Flash, Gemini 3.5 Flash, and Gemini 3.5 Flash-Lite. The official release notes state that Gemini 3.7 Flash (`gemini-3.7-flash`) is generally available as of August 13, 2026, and that Gemini 3.6 Flash (`gemini-3.6-flash`) and Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`) are generally available production-ready versions. The app can use these stable IDs in a fallback chain without changing its UI. Preview and experimental IDs should not be selected as the production default.
+Sources: https://ai.google.dev/gemini-api/docs/models and https://ai.google.dev/gemini-api/docs/changelog
