@@ -25,7 +25,7 @@ from google import genai
 from google.genai import types
 from faster_whisper import WhisperModel
 
-APP_VERSION = "6.7.1"
+APP_VERSION = "6.8.0"
 
 st.set_page_config(page_title='AI KHEMRA BRO', page_icon='🎬', layout='wide', initial_sidebar_state='collapsed')
 
@@ -2629,8 +2629,62 @@ def initialize_license_database():
             )
             """
         )
+        # A project belongs to the shared Access Code, never to a browser session.
+        # The code itself is not stored in these collaboration tables.
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS team_projects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scope_hash TEXT NOT NULL,
+                project_name TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'កំពុងបកប្រែ',
+                assignee TEXT NOT NULL DEFAULT '',
+                notes TEXT NOT NULL DEFAULT '',
+                srt_text TEXT NOT NULL DEFAULT '',
+                created_by TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_by TEXT NOT NULL DEFAULT '',
+                updated_at TEXT NOT NULL,
+                revision_no INTEGER NOT NULL DEFAULT 1,
+                is_archived INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS team_project_revisions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL,
+                revision_no INTEGER NOT NULL,
+                saved_by TEXT NOT NULL DEFAULT '',
+                saved_at TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT '',
+                notes TEXT NOT NULL DEFAULT '',
+                srt_text TEXT NOT NULL DEFAULT '',
+                FOREIGN KEY(project_id) REFERENCES team_projects(id) ON DELETE CASCADE,
+                UNIQUE(project_id, revision_no)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS team_activity (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scope_hash TEXT NOT NULL,
+                project_id INTEGER,
+                event_at TEXT NOT NULL,
+                actor TEXT NOT NULL DEFAULT '',
+                event_type TEXT NOT NULL,
+                details TEXT NOT NULL DEFAULT '',
+                FOREIGN KEY(project_id) REFERENCES team_projects(id) ON DELETE SET NULL
+            )
+            """
+        )
         connection.execute("CREATE INDEX IF NOT EXISTS idx_login_attempts_key_time ON login_attempts(attempt_key, attempted_at)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_audit_time ON audit_log(event_at)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_team_projects_scope_updated ON team_projects(scope_hash, is_archived, updated_at DESC)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_team_revisions_project ON team_project_revisions(project_id, revision_no DESC)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_team_activity_scope_time ON team_activity(scope_hash, event_at DESC)")
         connection.commit()
 
 
@@ -2973,10 +3027,375 @@ def disconnect_license(license_id):
 
 def delete_license(license_id):
     with license_connection() as connection:
-        row = connection.execute("SELECT customer_name FROM licenses WHERE id=?", (int(license_id),)).fetchone()
+        row = connection.execute(
+            "SELECT customer_name,access_code_display FROM licenses WHERE id=?",
+            (int(license_id),),
+        ).fetchone()
+        # Team projects are scoped to an Access Code. Removing the license must
+        # remove the linked shared work too, so a later code reuse cannot expose it.
+        if row:
+            scope_hash = team_scope_hash(row["access_code_display"])
+            connection.execute("DELETE FROM team_activity WHERE scope_hash=?", (scope_hash,))
+            connection.execute("DELETE FROM team_projects WHERE scope_hash=?", (scope_hash,))
         connection.execute("DELETE FROM licenses WHERE id=?", (int(license_id),))
         connection.commit()
     _audit("license_deleted", get_admin_username(), row["customer_name"] if row else str(license_id))
+
+
+# ───────────── Shared team workspace ─────────────
+TEAM_PROJECT_STATUSES = (
+    "កំពុងបកប្រែ",
+    "ត្រូវពិនិត្យ",
+    "រួចរាល់",
+    "ផ្អាក",
+)
+MAX_TEAM_PROJECT_NAME_LENGTH = 120
+MAX_TEAM_NOTES_LENGTH = 4000
+MAX_TEAM_SRT_LENGTH = 500000
+
+
+class TeamProjectConflictError(RuntimeError):
+    """Raised when somebody saved a newer project version while this browser was editing."""
+
+
+def team_scope_hash(access_code):
+    """Return a non-reversible collaboration scope for the currently shared Access Code."""
+    return _hash_code(normalize_access_code(access_code))
+
+
+def _team_actor_name(actor):
+    return normalize_customer_name(actor) or "សមាជិកក្រុម"
+
+
+def _clean_team_project_name(value):
+    return " ".join(str(value or "").strip().split())[:MAX_TEAM_PROJECT_NAME_LENGTH]
+
+
+def _clean_team_notes(value):
+    return str(value or "").strip()[:MAX_TEAM_NOTES_LENGTH]
+
+
+def _clean_team_srt(value):
+    return str(value or "").strip()[:MAX_TEAM_SRT_LENGTH]
+
+
+def _team_activity(connection, scope_hash, project_id, actor, event_type, details=""):
+    connection.execute(
+        "INSERT INTO team_activity(scope_hash,project_id,event_at,actor,event_type,details) VALUES(?,?,?,?,?,?)",
+        (
+            scope_hash,
+            int(project_id) if project_id is not None else None,
+            _iso(),
+            _team_actor_name(actor),
+            str(event_type)[:60],
+            str(details or "")[:500],
+        ),
+    )
+
+
+def team_project_rows(scope_hash, include_archived=False):
+    query = "SELECT * FROM team_projects WHERE scope_hash=?"
+    params = [scope_hash]
+    if not include_archived:
+        query += " AND is_archived=0"
+    query += " ORDER BY updated_at DESC, id DESC"
+    with license_connection() as connection:
+        return connection.execute(query, params).fetchall()
+
+
+def get_team_project(scope_hash, project_id):
+    with license_connection() as connection:
+        return connection.execute(
+            "SELECT * FROM team_projects WHERE id=? AND scope_hash=? AND is_archived=0",
+            (int(project_id), scope_hash),
+        ).fetchone()
+
+
+def create_team_project(scope_hash, project_name, actor, srt_text=""):
+    name = _clean_team_project_name(project_name)
+    if not name:
+        raise ValueError("សូមបញ្ចូលឈ្មោះគម្រោង។")
+    srt = _clean_team_srt(srt_text)
+    now = _iso()
+    actor_name = _team_actor_name(actor)
+    with license_connection() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO team_projects
+            (scope_hash,project_name,status,assignee,notes,srt_text,created_by,created_at,updated_by,updated_at,revision_no,is_archived)
+            VALUES(?,?,?, '', '', ?, ?, ?, ?, ?, 1, 0)
+            """,
+            (scope_hash, name, TEAM_PROJECT_STATUSES[0], srt, actor_name, now, actor_name, now),
+        )
+        project_id = cursor.lastrowid
+        connection.execute(
+            """
+            INSERT INTO team_project_revisions(project_id,revision_no,saved_by,saved_at,status,notes,srt_text)
+            VALUES(?,1,?,?,?, '', ?)
+            """,
+            (project_id, actor_name, now, TEAM_PROJECT_STATUSES[0], srt),
+        )
+        _team_activity(connection, scope_hash, project_id, actor_name, "project_created", name)
+        connection.commit()
+    return int(project_id)
+
+
+def save_team_project(scope_hash, project_id, expected_revision, project_name, status, assignee, notes, srt_text, actor):
+    name = _clean_team_project_name(project_name)
+    if not name:
+        raise ValueError("សូមបញ្ចូលឈ្មោះគម្រោង។")
+    if status not in TEAM_PROJECT_STATUSES:
+        raise ValueError("ស្ថានភាពគម្រោងមិនត្រឹមត្រូវ។")
+    assignee = normalize_customer_name(assignee)
+    notes = _clean_team_notes(notes)
+    srt = _clean_team_srt(srt_text)
+    actor_name = _team_actor_name(actor)
+    now = _iso()
+    with license_connection() as connection:
+        current = connection.execute(
+            "SELECT revision_no FROM team_projects WHERE id=? AND scope_hash=? AND is_archived=0",
+            (int(project_id), scope_hash),
+        ).fetchone()
+        if not current:
+            raise ValueError("គម្រោងនេះមិនមានទៀតទេ ឬអ្នកមិនមានសិទ្ធិចូលប្រើ។")
+        if int(current["revision_no"]) != int(expected_revision):
+            raise TeamProjectConflictError("មានសមាជិកក្រុមម្នាក់ទៀតបានរក្សាទុកកំណែថ្មី។ សូម Reload គម្រោង មុនរក្សាទុកម្ដងទៀត។")
+        new_revision = int(current["revision_no"]) + 1
+        cursor = connection.execute(
+            """
+            UPDATE team_projects
+            SET project_name=?, status=?, assignee=?, notes=?, srt_text=?, updated_by=?, updated_at=?, revision_no=?
+            WHERE id=? AND scope_hash=? AND revision_no=? AND is_archived=0
+            """,
+            (name, status, assignee, notes, srt, actor_name, now, new_revision, int(project_id), scope_hash, int(expected_revision)),
+        )
+        if cursor.rowcount != 1:
+            raise TeamProjectConflictError("មានការកែប្រែថ្មីពីសមាជិកផ្សេង។ សូម Reload គម្រោង មុនរក្សាទុកម្ដងទៀត។")
+        connection.execute(
+            """
+            INSERT INTO team_project_revisions(project_id,revision_no,saved_by,saved_at,status,notes,srt_text)
+            VALUES(?,?,?,?,?,?,?)
+            """,
+            (int(project_id), new_revision, actor_name, now, status, notes, srt),
+        )
+        _team_activity(connection, scope_hash, project_id, actor_name, "project_saved", f"កំណែទី {new_revision} • {status}")
+        connection.commit()
+    return new_revision
+
+
+def archive_team_project(scope_hash, project_id, expected_revision, actor):
+    actor_name = _team_actor_name(actor)
+    with license_connection() as connection:
+        cursor = connection.execute(
+            """
+            UPDATE team_projects SET is_archived=1, updated_by=?, updated_at=?
+            WHERE id=? AND scope_hash=? AND revision_no=? AND is_archived=0
+            """,
+            (actor_name, _iso(), int(project_id), scope_hash, int(expected_revision)),
+        )
+        if cursor.rowcount != 1:
+            raise TeamProjectConflictError("គម្រោងត្រូវបានកែប្រែថ្មី។ សូម Reload មុនអនុវត្តសកម្មភាពនេះ។")
+        _team_activity(connection, scope_hash, project_id, actor_name, "project_archived", "បានបញ្ចូលទៅប័ណ្ណសារ")
+        connection.commit()
+
+
+def team_project_revisions(scope_hash, project_id):
+    with license_connection() as connection:
+        return connection.execute(
+            """
+            SELECT r.* FROM team_project_revisions r
+            JOIN team_projects p ON p.id=r.project_id
+            WHERE r.project_id=? AND p.scope_hash=?
+            ORDER BY r.revision_no DESC
+            LIMIT 30
+            """,
+            (int(project_id), scope_hash),
+        ).fetchall()
+
+
+def team_activity_rows(scope_hash, limit=20):
+    with license_connection() as connection:
+        return connection.execute(
+            """
+            SELECT a.*, p.project_name
+            FROM team_activity a
+            LEFT JOIN team_projects p ON p.id=a.project_id
+            WHERE a.scope_hash=?
+            ORDER BY a.id DESC
+            LIMIT ?
+            """,
+            (scope_hash, int(limit)),
+        ).fetchall()
+
+
+def _reset_team_editor_state(project_id):
+    for key in (
+        f"team_name_{project_id}",
+        f"team_status_{project_id}",
+        f"team_assignee_{project_id}",
+        f"team_notes_{project_id}",
+        f"team_srt_{project_id}",
+        f"team_loaded_revision_{project_id}",
+    ):
+        st.session_state.pop(key, None)
+
+
+def render_team_workspace(access_code, actor):
+    """Render collaboration for members sharing the currently authenticated Access Code."""
+    scope_hash = team_scope_hash(access_code)
+    actor_name = _team_actor_name(actor)
+    rows = team_project_rows(scope_hash)
+    flash_message = st.session_state.pop("team_workspace_flash", "")
+
+    st.markdown('<div class="section-title">👥 ការងារក្រុម</div>', unsafe_allow_html=True)
+    if flash_message:
+        st.success(flash_message)
+    st.caption("គម្រោងនៅទីនេះចែករំលែកតែជាមួយសមាជិកដែលចូលប្រើដោយ Access Code ដូចគ្នា។ API Key និងឯកសារវីដេអូនៅតែឯកជនក្នុង browser របស់ម្នាក់ៗ។")
+
+    total = len(rows)
+    review_count = sum(1 for row in rows if row["status"] == "ត្រូវពិនិត្យ")
+    done_count = sum(1 for row in rows if row["status"] == "រួចរាល់")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("គម្រោងសកម្ម", total)
+    m2.metric("រង់ចាំពិនិត្យ", review_count)
+    m3.metric("រួចរាល់", done_count)
+
+    with st.expander("➕ បង្កើតគម្រោងក្រុមថ្មី", expanded=not rows):
+        with st.form("team_create_project_form", clear_on_submit=True):
+            project_name = st.text_input("ឈ្មោះរឿង ឬជំពូក", placeholder="ឧ. រឿង A — ភាគ 01")
+            use_current_srt = st.checkbox("ចាប់ផ្ដើមដោយ SRT ពី Editor បច្ចុប្បន្ន", value=bool(st.session_state.get("srt_text", "")))
+            create_project = st.form_submit_button("បង្កើតគម្រោង", use_container_width=True)
+        if create_project:
+            try:
+                project_id = create_team_project(
+                    scope_hash,
+                    project_name,
+                    actor_name,
+                    st.session_state.get("srt_text", "") if use_current_srt else "",
+                )
+                st.session_state.team_selected_project = project_id
+                st.session_state.team_workspace_flash = "បានបង្កើតគម្រោងក្រុមរួចរាល់។"
+                st.rerun()
+            except ValueError as exc:
+                st.error(str(exc))
+
+    if not rows:
+        st.info("មិនទាន់មានគម្រោងក្រុមទេ។ បង្កើតគម្រោងដំបូង ដើម្បីចែករំលែក SRT និងកំណត់ស្ថានភាពជាមួយក្រុម។")
+        return
+
+    project_ids = [int(row["id"]) for row in rows]
+    saved_choice = st.session_state.get("team_selected_project")
+    if saved_choice not in project_ids:
+        st.session_state.team_selected_project = project_ids[0]
+    selected_id = st.selectbox(
+        "ជ្រើសគម្រោង",
+        project_ids,
+        format_func=lambda project_id: next(
+            f"{row['project_name']} • {row['status']} • កំណែ {row['revision_no']}"
+            for row in rows if int(row["id"]) == int(project_id)
+        ),
+        key="team_selected_project",
+    )
+    project = get_team_project(scope_hash, selected_id)
+    if not project:
+        st.warning("គម្រោងនេះមិនអាចបើកបានទេ។ សូម Refresh ទំព័រ។")
+        return
+
+    project_id = int(project["id"])
+    reload_key = "team_reload_project"
+    if st.session_state.pop(reload_key, None) == project_id:
+        _reset_team_editor_state(project_id)
+        project = get_team_project(scope_hash, project_id)
+
+    revision_key = f"team_loaded_revision_{project_id}"
+    if revision_key not in st.session_state:
+        st.session_state[revision_key] = int(project["revision_no"])
+
+    meta_left, meta_right = st.columns([3, 1])
+    with meta_left:
+        st.caption(
+            f"អ្នកបង្កើត៖ {project['created_by']} • កែចុងក្រោយដោយ៖ {project['updated_by']} • "
+            f"{_parse_iso(project['updated_at']).astimezone().strftime('%Y-%m-%d %H:%M')}"
+        )
+    with meta_right:
+        if st.button("↻ Reload", key=f"team_reload_{project_id}", use_container_width=True):
+            st.session_state[reload_key] = project_id
+            st.rerun()
+
+    name = st.text_input("ឈ្មោះគម្រោង", value=project["project_name"], key=f"team_name_{project_id}")
+    edit_left, edit_right = st.columns(2)
+    with edit_left:
+        status = st.selectbox(
+            "ស្ថានភាព",
+            TEAM_PROJECT_STATUSES,
+            index=TEAM_PROJECT_STATUSES.index(project["status"]) if project["status"] in TEAM_PROJECT_STATUSES else 0,
+            key=f"team_status_{project_id}",
+        )
+    with edit_right:
+        assignee = st.text_input("អ្នកទទួលបន្ទុក", value=project["assignee"], key=f"team_assignee_{project_id}")
+    notes = st.text_area("ចំណាំសម្រាប់ក្រុម", value=project["notes"], height=120, key=f"team_notes_{project_id}")
+
+    import_col, save_col = st.columns(2)
+    with import_col:
+        if st.button("📝 ចម្លង SRT ពី Editor", key=f"team_copy_from_editor_{project_id}", use_container_width=True):
+            st.session_state[f"team_srt_{project_id}"] = st.session_state.get("srt_text", "")
+            st.rerun()
+    with save_col:
+        if st.button("⬇️ នាំ SRT ទៅ Editor", key=f"team_load_to_editor_{project_id}", use_container_width=True):
+            st.session_state.srt_text = project["srt_text"]
+            st.session_state.pending_editor_update = project["srt_text"]
+            st.session_state.audio_bytes = None
+            st.success("SRT ត្រូវបាននាំចូលទៅ Editor។")
+
+    srt_text = st.text_area(
+        "SRT រួមរបស់ក្រុម",
+        value=project["srt_text"],
+        height=360,
+        key=f"team_srt_{project_id}",
+        help="ការរក្សាទុកម្តងៗ បង្កើតកំណែថ្មី ដើម្បីអាចត្រឡប់ទៅកំណែមុនបាន។",
+    )
+
+    save_left, save_right = st.columns(2)
+    with save_left:
+        if st.button("💾 រក្សាទុកកំណែថ្មី", key=f"team_save_{project_id}", use_container_width=True):
+            try:
+                new_revision = save_team_project(
+                    scope_hash, project_id, st.session_state[revision_key], name, status, assignee, notes, srt_text, actor_name
+                )
+                st.session_state[revision_key] = new_revision
+                st.session_state.team_workspace_flash = f"បានរក្សាទុកកំណែទី {new_revision} រួចរាល់។"
+                st.rerun()
+            except TeamProjectConflictError as exc:
+                st.warning(str(exc))
+            except ValueError as exc:
+                st.error(str(exc))
+    with save_right:
+        if st.button("🗄️ ដាក់ក្នុងប័ណ្ណសារ", key=f"team_archive_{project_id}", use_container_width=True):
+            try:
+                archive_team_project(scope_hash, project_id, st.session_state[revision_key], actor_name)
+                st.session_state.pop("team_selected_project", None)
+                st.session_state.team_workspace_flash = "បានដាក់គម្រោងក្នុងប័ណ្ណសារ។"
+                st.rerun()
+            except TeamProjectConflictError as exc:
+                st.warning(str(exc))
+
+    with st.expander("🕘 ប្រវត្តិកំណែ"):
+        revisions = team_project_revisions(scope_hash, project_id)
+        for revision in revisions:
+            st.caption(
+                f"កំណែ {revision['revision_no']} • {revision['saved_by']} • "
+                f"{_parse_iso(revision['saved_at']).astimezone().strftime('%Y-%m-%d %H:%M')} • {revision['status']}"
+            )
+            if revision["notes"]:
+                st.caption(f"ចំណាំ៖ {revision['notes'][:180]}")
+            if st.button("មើល/ចម្លង SRT កំណែនេះ", key=f"team_revision_preview_{project_id}_{revision['revision_no']}"):
+                st.code(revision["srt_text"] or "(មិនមាន SRT)", language="text")
+
+    with st.expander("📋 សកម្មភាពថ្មីៗ"):
+        activities = team_activity_rows(scope_hash)
+        for event in activities:
+            project_label = event["project_name"] or "គម្រោងដែលបានលុប/ប័ណ្ណសារ"
+            st.caption(f"{event['event_at']} • {event['actor']} • {project_label} • {event['event_type']} • {event['details']}")
 
 
 def hidden_owner_trigger():
@@ -3524,9 +3943,12 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab_video, tab_translate, tab_srt_speech, tab_text_speech = st.tabs(
-    ["🎬 Video → SRT", "📝 AI Subtitle Translator", "📜 SRT → Speech", "🎙️ Text → Speech"]
+tab_team, tab_video, tab_translate, tab_srt_speech, tab_text_speech = st.tabs(
+    ["👥 ការងារក្រុម", "🎬 Video → SRT", "📝 AI Subtitle Translator", "📜 SRT → Speech", "🎙️ Text → Speech"]
 )
+
+with tab_team:
+    render_team_workspace(login_row["access_code_display"], login_row["customer_name"])
 
 with tab_video:
     st.markdown('<div class="section-title">1️⃣ Generate Subtitles (Khmer ខ្មែរ)</div>', unsafe_allow_html=True)
@@ -3989,4 +4411,4 @@ with tab_text_speech:
             use_container_width=True,
         )
 
-st.caption("AI-KHEMRA-BRO v6.7.1 • Auto-Fit Khmer Audio • Ordered Translation • Strict SRT Timing • Mobile-first")
+st.caption(f"AI-KHEMRA-BRO v{APP_VERSION} • Shared Team Workspace • Auto-Fit Khmer Audio • Ordered Translation • Strict SRT Timing • Mobile-first")
