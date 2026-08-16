@@ -25,7 +25,7 @@ from google import genai
 from google.genai import types
 from faster_whisper import WhisperModel
 
-APP_VERSION = "6.8.0"
+APP_VERSION = "6.9.0"
 
 st.set_page_config(page_title='AI KHEMRA BRO', page_icon='🎬', layout='wide', initial_sidebar_state='collapsed')
 
@@ -585,6 +585,92 @@ button, a, [role="button"]{touch-action:manipulation}
   .hero p{font-size:10px!important}
   button[data-baseweb="tab"]{min-height:44px!important}
   .stButton > button, .stDownloadButton > button{min-height:44px!important}
+}
+/* ───────────── Minimal workspace refresh v6.9 ───────────── */
+.block-container{max-width:1040px!important;padding-top:1rem!important}
+.hero{
+  border:1px solid rgba(34,211,238,.72)!important;border-radius:18px!important;
+  padding:24px 18px!important;margin:8px 0 16px!important;
+  background:linear-gradient(145deg,#121827,#09111c)!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.20)!important;
+}
+.hero h1{font-size:clamp(30px,5vw,42px)!important;letter-spacing:-.8px!important}
+.hero p{font-size:12px!important;letter-spacing:1.1px!important;color:#67e8f9!important}
+
+/* Keep navigation calm: four clear destinations instead of a crowded toolbar. */
+div[data-baseweb="tab-list"]{
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:6px!important;padding:6px!important;background:#0c1422!important;
+  border:1px solid #24334a!important;border-radius:14px!important;
+}
+button[data-baseweb="tab"]{
+  min-height:46px!important;padding:8px 6px!important;font-size:13px!important;
+  background:#111c2c!important;border-color:#263a54!important;color:#bac7d7!important;
+}
+button[data-baseweb="tab"][aria-selected="true"]{
+  background:linear-gradient(100deg,#0284c7,#22d3ee)!important;color:#fff!important;
+  border-color:#67e8f9!important;box-shadow:none!important;
+}
+
+/* Customer and owner access use a single focused card with one primary action. */
+.st-key-public_login_wrap,.st-key-owner_login_wrap{width:min(100%,520px)!important;margin:0 auto!important}
+.login-kicker{margin:6px 0 4px;color:#67e8f9;font-size:12px;font-weight:900;letter-spacing:1.1px;text-transform:uppercase}
+.login-title{margin:0 0 16px;color:#f8fafc;font-size:clamp(25px,6.5vw,34px);font-weight:950;line-height:1.15}
+.st-key-customer_login_box,.st-key-owner_login_card{
+  border:1px solid #22334b!important;border-radius:18px!important;padding:18px!important;
+  background:linear-gradient(145deg,rgba(17,28,44,.94),rgba(8,14,24,.94))!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.18)!important;
+}
+.st-key-customer_login_box label,.st-key-customer_login_box label p,
+.st-key-owner_login_card label,.st-key-owner_login_card label p{
+  color:#cbd5e1!important;font-size:14px!important;font-weight:800!important;
+}
+.st-key-customer_login_box input,.st-key-owner_login_card input{
+  min-height:50px!important;border-radius:11px!important;background:#f8fafc!important;
+  color:#0f172a!important;border:1px solid #dbeafe!important;font-size:16px!important;
+}
+.st-key-customer_login_box [data-testid="stFormSubmitButton"] button,
+.st-key-owner_login_card [data-testid="stFormSubmitButton"] button{
+  min-height:50px!important;margin-top:8px!important;border:0!important;border-radius:11px!important;
+  background:linear-gradient(100deg,#0284c7,#22d3ee)!important;color:#fff!important;
+  font-size:16px!important;font-weight:900!important;box-shadow:none!important;
+}
+.st-key-customer_login_box [data-testid="stFormSubmitButton"] button p,
+.st-key-owner_login_card [data-testid="stFormSubmitButton"] button p{color:#fff!important;font-weight:900!important}
+.login-help{margin:12px 4px 0!important;color:#9caec4!important;font-size:14px!important;line-height:1.55!important;text-align:center}
+.login-help strong{color:#67e8f9!important}
+.login-links{display:flex;justify-content:center;gap:14px;margin-top:9px;font-size:14px;font-weight:800}
+.login-links a{color:#67e8f9!important;text-decoration:none!important}
+.st-key-close_admin_gate button{
+  background:transparent!important;border:1px solid #36516e!important;color:#cbd5e1!important;
+  box-shadow:none!important;margin-top:10px!important;
+}
+
+/* Audio mode is a two-choice switch, not another crowded tab row. */
+.st-key-audio_mode [role="radiogroup"]{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;width:100%!important;padding:6px!important;
+  border:1px solid #24334a!important;border-radius:14px!important;background:#0c1422!important;
+}
+.st-key-audio_mode [role="radiogroup"] label{
+  display:flex!important;justify-content:center!important;align-items:center!important;
+  min-height:42px!important;margin:0!important;padding:8px!important;border:1px solid #2a405c!important;
+  border-radius:10px!important;background:#111c2c!important;color:#cbd5e1!important;font-weight:850!important;
+}
+.st-key-audio_mode [role="radiogroup"] label:has(input:checked){
+  background:linear-gradient(100deg,#0284c7,#22d3ee)!important;border-color:#67e8f9!important;color:#fff!important;
+}
+
+/* Important notices should inform without taking over the screen. */
+div[data-testid="stAlert"]{border-radius:12px!important;padding:10px 12px!important;font-size:14px!important}
+
+@media(max-width:700px){
+  .block-container{padding:10px 12px 2.2rem!important}
+  .hero{margin-top:46px!important;padding:20px 12px!important}
+  .hero h1{font-size:clamp(28px,9vw,36px)!important}
+  div[data-baseweb="tab-list"]{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;padding:5px!important}
+  button[data-baseweb="tab"]{min-height:44px!important;font-size:12px!important;padding:6px 4px!important}
+  .st-key-customer_login_box,.st-key-owner_login_card{padding:15px!important;border-radius:15px!important}
 }
 </style>
 ''', unsafe_allow_html=True)
@@ -3510,18 +3596,18 @@ def render_private_subscription_countdown(expiry_datetime, plan_label):
 
 def public_login_screen():
     st.markdown(
-        '<div class="hero"><h1>AI KHEMRA BRO</h1><p>PRIVATE CUSTOMER ACCESS</p></div>',
+        '<div class="hero"><h1>AI KHEMRA BRO</h1><p>KHMER DUBBING WORKSPACE</p></div>',
         unsafe_allow_html=True,
     )
 
     with st.container(key="public_login_wrap"):
-        st.markdown("### 🔐 ចូលប្រើកម្មវិធី")
-
+        st.markdown('<div class="login-kicker">Member access</div>', unsafe_allow_html=True)
+        st.markdown('<div class="login-title">ចូលប្រើកន្លែងធ្វើការ</div>', unsafe_allow_html=True)
         with st.container(key="customer_login_box"):
             with st.form("customer_login_form", clear_on_submit=False):
                 name = st.text_input(
-                    "ឈ្មោះ៖ (មិនចាំបាច់បញ្ចូលក៏បាន)",
-                    placeholder="អាចទុកទទេបាន",
+                    "ឈ្មោះសម្រាប់បង្ហាញ (ជម្រើស)",
+                    placeholder="ឧ. អ្នកបកប្រែ A",
                 )
                 code = st.text_input(
                     "Access Code",
@@ -3529,7 +3615,7 @@ def public_login_screen():
                     type="password",
                 )
                 submitted = st.form_submit_button(
-                    "ចូលប្រើកម្មវិធី",
+                    "ចូលប្រើដោយ Access Code",
                     use_container_width=True,
                 )
 
@@ -3552,24 +3638,14 @@ def public_login_screen():
             else:
                 st.error(message)
 
-        # Real clickable links: one locked 50% / 50% row on every phone size.
         st.markdown(
             """
-            <div class="social-split">
-              <a href="https://www.facebook.com/Khrmra?mibextid=wwXIfr&mibextid=wwXIfr" target="_blank" rel="noopener noreferrer"
-                 aria-label="Open KHEMRA Facebook">
-                <span class="social-icon">f</span>
-                <span>Facebook</span>
-              </a>
-              <a href="https://t.me/+VC_6B66uwH5hMDE9" target="_blank" rel="noopener noreferrer"
-                 aria-label="Open KHEMRA Telegram">
-                <span class="social-icon">➤</span>
-                <span>Telegram</span>
-              </a>
-            </div>
             <div class="login-help">
-              សូមទាក់ទង Owner ដើម្បីទទួល <strong>Access Code</strong>
-              សម្រាប់ចូលប្រើកម្មវិធី។
+              បញ្ចូល <strong>Access Code</strong> របស់ក្រុម ដើម្បីបន្តការងាររឿងរួមគ្នា។
+              <div class="login-links">
+                <a href="https://www.facebook.com/Khrmra?mibextid=wwXIfr&mibextid=wwXIfr" target="_blank" rel="noopener noreferrer">Facebook</a>
+                <a href="https://t.me/+VC_6B66uwH5hMDE9" target="_blank" rel="noopener noreferrer">Telegram</a>
+              </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -3604,29 +3680,28 @@ def admin_dashboard():
         st.error("Owner ត្រូវកំណត់ ADMIN_USERNAME និង ADMIN_PASSWORD ក្នុង Streamlit Secrets ឬ environment មុនប្រើ Admin។")
         st.code('ADMIN_USERNAME = "your-admin-name"\nADMIN_PASSWORD = "use-a-long-unique-password"', language="toml")
         return
-    if not PERSISTENT_LICENSE_STORAGE_CONFIGURED:
-        st.warning("កំពុងប្រើ database ក្នុង app folder។ សម្រាប់ deploy ពិត សូមកំណត់ AI_KHEMRA_BRO_DATA_DIR ទៅ persistent volume មុនបង្កើត Access Code។")
     admin_password = get_admin_password()
 
     if not st.session_state.get("admin_authenticated", False):
-        left, center, right = st.columns([1, 1.25, 1])
-        with center:
-            st.markdown("### 👑 ម្ចាស់កម្មវិធី")
-            with st.form("admin_login_form"):
-                username = st.text_input("Username", autocomplete="off")
-                password = st.text_input("Password", type="password", autocomplete="off")
-                submitted = st.form_submit_button("ចូលគ្រប់គ្រង", use_container_width=True)
-            if submitted:
-                name_ok = hmac.compare_digest(username.strip().casefold(), get_admin_username().casefold())
-                pass_ok = hmac.compare_digest(password, admin_password)
-                if name_ok and pass_ok:
-                    st.session_state.admin_authenticated = True
-                    st.session_state.admin_gate_visible = True
-                    _audit("admin_login", username.strip(), "success")
-                    st.rerun()
-                else:
-                    _audit("admin_login_failed", username.strip() or "unknown", "failed")
-                    st.error("Username ឬ Password មិនត្រឹមត្រូវ។")
+        with st.container(key="owner_login_wrap"):
+            st.markdown('<div class="login-kicker">Owner access</div>', unsafe_allow_html=True)
+            st.markdown('<div class="login-title">ចូលគ្រប់គ្រងកម្មវិធី</div>', unsafe_allow_html=True)
+            with st.container(key="owner_login_card"):
+                with st.form("admin_login_form"):
+                    username = st.text_input("Username", autocomplete="off")
+                    password = st.text_input("Password", type="password", autocomplete="off")
+                    submitted = st.form_submit_button("ចូលគ្រប់គ្រង", use_container_width=True)
+                if submitted:
+                    name_ok = hmac.compare_digest(username.strip().casefold(), get_admin_username().casefold())
+                    pass_ok = hmac.compare_digest(password, admin_password)
+                    if name_ok and pass_ok:
+                        st.session_state.admin_authenticated = True
+                        st.session_state.admin_gate_visible = True
+                        _audit("admin_login", username.strip(), "success")
+                        st.rerun()
+                    else:
+                        _audit("admin_login_failed", username.strip() or "unknown", "failed")
+                        st.error("Username ឬ Password មិនត្រឹមត្រូវ។")
             if st.button("← ត្រឡប់ទៅ Customer Login", key="close_admin_gate", use_container_width=True):
                 st.session_state.admin_gate_visible = False
                 st.session_state.owner_click_count = 0
@@ -3636,6 +3711,8 @@ def admin_dashboard():
     top1, top2 = st.columns([4, 1])
     with top1:
         st.success("👑 Owner បានចូលរួច")
+        if not PERSISTENT_LICENSE_STORAGE_CONFIGURED:
+            st.info("សម្រាប់ deploy ពិត សូមកំណត់ AI_KHEMRA_BRO_DATA_DIR ទៅ persistent volume មុនបង្កើត Access Code។")
     with top2:
         if st.button("ចាកចេញ", key="admin_logout", use_container_width=True):
             _audit("admin_logout", get_admin_username(), "success")
@@ -3939,19 +4016,16 @@ if not valid_api_keys:
     st.warning("🔐 មិនទាន់មាន Gemini API Key — សូមបញ្ចូលក្នុង ☰ Settings ដើម្បីបកប្រែអក្សរទៅជាភាសាខ្មែរ។")
 
 st.markdown(
-    '<div class="hero"><h1>AI KHEMRA BRO</h1><p>GLOBAL AI DUBBING & SUBTITLING WORKSTATION</p></div>',
+    '<div class="hero"><h1>AI KHEMRA BRO</h1><p>KHMER DUBBING WORKSPACE</p></div>',
     unsafe_allow_html=True,
 )
 
-tab_team, tab_video, tab_translate, tab_srt_speech, tab_text_speech = st.tabs(
-    ["👥 ការងារក្រុម", "🎬 Video → SRT", "📝 AI Subtitle Translator", "📜 SRT → Speech", "🎙️ Text → Speech"]
+tab_video, tab_translate, tab_audio, tab_team = st.tabs(
+    ["🎬 បកប្រែវីដេអូ", "📝 កែ SRT", "🔊 បង្កើតសំឡេង", "👥 ក្រុម"]
 )
 
-with tab_team:
-    render_team_workspace(login_row["access_code_display"], login_row["customer_name"])
-
 with tab_video:
-    st.markdown('<div class="section-title">1️⃣ Generate Subtitles (Khmer ខ្មែរ)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">បកប្រែវីដេអូទៅខ្មែរ</div>', unsafe_allow_html=True)
     video_music_path, video_ducking_config = render_audio_ducking_controls('video_dubbing')
 
     uploaded_video = st.file_uploader(
@@ -4076,7 +4150,7 @@ with tab_video:
                     if video_path is not None:
                         video_path.unlink(missing_ok=True)
 
-    st.subheader("Generated SRT")
+    st.subheader("SRT ដែលបានបង្កើត")
     workflow_notice = st.session_state.pop("workflow_notice", "")
     if workflow_notice:
         if workflow_notice.startswith("✅"):
@@ -4162,7 +4236,7 @@ with tab_video:
                     use_container_width=True,
                 )
 
-    st.markdown('<div class="section-title">2️⃣ AI Dubbing (Edge TTS Studio)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">បង្កើតសំឡេងខ្មែរ</div>', unsafe_allow_html=True)
     st.markdown('''<div class="voice-orchestra" aria-label="Four Khmer voice roles">
       <div class="voice-mic"><span>🎙️</span><small>[M] ប្រុស</small></div>
       <div class="voice-mic"><span>🎙️</span><small>[F] ស្រី</small></div>
@@ -4312,103 +4386,115 @@ with tab_translate:
             use_container_width=True,
         )
 
-with tab_srt_speech:
-    st.header("SRT → Speech")
-    st.markdown('''<div class="voice-orchestra" aria-label="Four Khmer voice roles">
-      <div class="voice-mic"><span>🎙️</span><small>[M] ប្រុស</small></div>
-      <div class="voice-mic"><span>🎙️</span><small>[F] ស្រី</small></div>
-      <div class="voice-mic"><span>🎙️</span><small>[M_THINK] គិត</small></div>
-      <div class="voice-mic"><span>🎙️</span><small>[F_THINK] គិត</small></div>
-    </div>''', unsafe_allow_html=True)
-    render_thought_voice_guide()
-    srt_music_path, srt_ducking_config = render_audio_ducking_controls('srt_speech')
-    speech_srt = st.text_area(
-        "Khmer SRT with [M] [F] [M_THINK] [F_THINK]",
-        height=360,
-        key="speech_srt_input",
+with tab_audio:
+    audio_mode = st.radio(
+        "ជ្រើសរើសរបៀបសំឡេង",
+        ["SRT → Speech", "Text → Speech"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="audio_mode",
     )
-    if st.button("🎧 Create MP3", key="srt_to_speech_btn"):
-        if not speech_srt.strip():
-            st.warning("សូមបញ្ចូល Khmer SRT។")
-        else:
-            waiting = st.empty()
-            try:
-                waiting.markdown(
-                    '<div class="khemra-wait-card"><span class="khemra-wait-orb"></span>'
-                    '<div><div class="khemra-wait-title">កំពុងបង្កើតសំឡេងខ្មែរ</div>'
-                    '<div class="khemra-wait-copy">សូមរង់ចាំបន្តិច ដើម្បីរក្សាចង្វាក់សំឡេងឱ្យធម្មជាតិ…</div>'
-                    '</div></div>', unsafe_allow_html=True,
-                )
-                st.session_state.speech_tab_audio_bytes = create_mp3(
-                    speech_srt,
-                    background_music_path=srt_music_path,
-                    ducking_config=srt_ducking_config,
-                )
-                waiting.empty()
-                st.success("✅ បង្កើត MP3 រួចរាល់។")
-            except Exception as exc:
-                waiting.empty()
-                st.error(f"❌ {exc}")
-    if st.session_state.get("speech_tab_audio_bytes"):
-        st.audio(st.session_state.speech_tab_audio_bytes, format="audio/mp3")
-        st.download_button(
-            "⬇️ ទាញយក MP3",
-            st.session_state.speech_tab_audio_bytes,
-            "khmer_srt_speech.mp3",
-            "audio/mpeg",
-            key="download_srt_speech_mp3",
-            use_container_width=True,
+    if audio_mode == "SRT → Speech":
+        st.header("បង្កើតសំឡេងពី SRT")
+        st.markdown('''<div class="voice-orchestra" aria-label="Four Khmer voice roles">
+          <div class="voice-mic"><span>🎙️</span><small>[M] ប្រុស</small></div>
+          <div class="voice-mic"><span>🎙️</span><small>[F] ស្រី</small></div>
+          <div class="voice-mic"><span>🎙️</span><small>[M_THINK] គិត</small></div>
+          <div class="voice-mic"><span>🎙️</span><small>[F_THINK] គិត</small></div>
+        </div>''', unsafe_allow_html=True)
+        render_thought_voice_guide()
+        srt_music_path, srt_ducking_config = render_audio_ducking_controls('srt_speech')
+        speech_srt = st.text_area(
+            "Khmer SRT with [M] [F] [M_THINK] [F_THINK]",
+            height=360,
+            key="speech_srt_input",
         )
-
-with tab_text_speech:
-    st.header("Text → Speech")
-    st.markdown('''<div class="voice-orchestra" aria-label="Four Khmer voice roles">
-      <div class="voice-mic"><span>🎙️</span><small>[M] ប្រុស</small></div>
-      <div class="voice-mic"><span>🎙️</span><small>[F] ស្រី</small></div>
-      <div class="voice-mic"><span>🎙️</span><small>[M_THINK] គិត</small></div>
-      <div class="voice-mic"><span>🎙️</span><small>[F_THINK] គិត</small></div>
-    </div>''', unsafe_allow_html=True)
-    render_thought_voice_guide()
-    text_music_path, text_ducking_config = render_audio_ducking_controls('text_speech')
-    plain_text = st.text_area("Khmer Text", height=260, key="plain_text_input")
-    voice_choice = st.selectbox(
-        "Voice",
-        ["M", "F", "M_THINK", "F_THINK"],
-        key="plain_voice",
-    )
-    if st.button("🔊 Generate Voice", key="plain_voice_btn"):
-        if not plain_text.strip():
-            st.warning("សូមបញ្ចូលអត្ថបទខ្មែរ។")
-        else:
-            waiting = st.empty()
-            try:
-                waiting.markdown(
-                    '<div class="khemra-wait-card"><span class="khemra-wait-orb"></span>'
-                    '<div><div class="khemra-wait-title">កំពុងបង្កើតសំឡេង</div>'
-                    '<div class="khemra-wait-copy">កំពុងរៀបចំសំឡេងឱ្យទន់ និងស្តាប់ធម្មជាតិ…</div>'
-                    '</div></div>', unsafe_allow_html=True,
-                )
-                with tempfile.TemporaryDirectory() as folder:
-                    output = Path(folder) / "speech.mp3"
-                    st.session_state.text_tab_audio_bytes = create_single_voice_mp3(
-                        plain_text.strip(), voice_choice,
-                        background_music_path=text_music_path,
-                        ducking_config=text_ducking_config,
+        if st.button("🎧 Create MP3", key="srt_to_speech_btn"):
+            if not speech_srt.strip():
+                st.warning("សូមបញ្ចូល Khmer SRT។")
+            else:
+                waiting = st.empty()
+                try:
+                    waiting.markdown(
+                        '<div class="khemra-wait-card"><span class="khemra-wait-orb"></span>'
+                        '<div><div class="khemra-wait-title">កំពុងបង្កើតសំឡេងខ្មែរ</div>'
+                        '<div class="khemra-wait-copy">សូមរង់ចាំបន្តិច ដើម្បីរក្សាចង្វាក់សំឡេងឱ្យធម្មជាតិ…</div>'
+                        '</div></div>', unsafe_allow_html=True,
                     )
-                waiting.empty()
-                st.success("✅ បង្កើតសំឡេងរួចរាល់។")
-            except Exception as exc:
-                waiting.empty()
-                st.error(f"❌ {exc}")
-    if st.session_state.get("text_tab_audio_bytes"):
-        st.audio(st.session_state.text_tab_audio_bytes, format="audio/mp3")
-        st.download_button(
-            "⬇️ ទាញយក MP3",
-            st.session_state.text_tab_audio_bytes,
-            "khmer_text_speech.mp3",
-            "audio/mpeg",
-            key="download_text_speech_mp3",
-            use_container_width=True,
-        )
+                    st.session_state.speech_tab_audio_bytes = create_mp3(
+                        speech_srt,
+                        background_music_path=srt_music_path,
+                        ducking_config=srt_ducking_config,
+                    )
+                    waiting.empty()
+                    st.success("✅ បង្កើត MP3 រួចរាល់។")
+                except Exception as exc:
+                    waiting.empty()
+                    st.error(f"❌ {exc}")
+        if st.session_state.get("speech_tab_audio_bytes"):
+            st.audio(st.session_state.speech_tab_audio_bytes, format="audio/mp3")
+            st.download_button(
+                "⬇️ ទាញយក MP3",
+                st.session_state.speech_tab_audio_bytes,
+                "khmer_srt_speech.mp3",
+                "audio/mpeg",
+                key="download_srt_speech_mp3",
+                use_container_width=True,
+            )
 
-st.caption(f"AI-KHEMRA-BRO v{APP_VERSION} • Shared Team Workspace • Auto-Fit Khmer Audio • Ordered Translation • Strict SRT Timing • Mobile-first")
+    else:
+        st.header("បង្កើតសំឡេងពីអត្ថបទ")
+        st.markdown('''<div class="voice-orchestra" aria-label="Four Khmer voice roles">
+          <div class="voice-mic"><span>🎙️</span><small>[M] ប្រុស</small></div>
+          <div class="voice-mic"><span>🎙️</span><small>[F] ស្រី</small></div>
+          <div class="voice-mic"><span>🎙️</span><small>[M_THINK] គិត</small></div>
+          <div class="voice-mic"><span>🎙️</span><small>[F_THINK] គិត</small></div>
+        </div>''', unsafe_allow_html=True)
+        render_thought_voice_guide()
+        text_music_path, text_ducking_config = render_audio_ducking_controls('text_speech')
+        plain_text = st.text_area("Khmer Text", height=260, key="plain_text_input")
+        voice_choice = st.selectbox(
+            "Voice",
+            ["M", "F", "M_THINK", "F_THINK"],
+            key="plain_voice",
+        )
+        if st.button("🔊 Generate Voice", key="plain_voice_btn"):
+            if not plain_text.strip():
+                st.warning("សូមបញ្ចូលអត្ថបទខ្មែរ។")
+            else:
+                waiting = st.empty()
+                try:
+                    waiting.markdown(
+                        '<div class="khemra-wait-card"><span class="khemra-wait-orb"></span>'
+                        '<div><div class="khemra-wait-title">កំពុងបង្កើតសំឡេង</div>'
+                        '<div class="khemra-wait-copy">កំពុងរៀបចំសំឡេងឱ្យទន់ និងស្តាប់ធម្មជាតិ…</div>'
+                        '</div></div>', unsafe_allow_html=True,
+                    )
+                    with tempfile.TemporaryDirectory() as folder:
+                        output = Path(folder) / "speech.mp3"
+                        st.session_state.text_tab_audio_bytes = create_single_voice_mp3(
+                            plain_text.strip(), voice_choice,
+                            background_music_path=text_music_path,
+                            ducking_config=text_ducking_config,
+                        )
+                    waiting.empty()
+                    st.success("✅ បង្កើតសំឡេងរួចរាល់។")
+                except Exception as exc:
+                    waiting.empty()
+                    st.error(f"❌ {exc}")
+        if st.session_state.get("text_tab_audio_bytes"):
+            st.audio(st.session_state.text_tab_audio_bytes, format="audio/mp3")
+            st.download_button(
+                "⬇️ ទាញយក MP3",
+                st.session_state.text_tab_audio_bytes,
+                "khmer_text_speech.mp3",
+                "audio/mpeg",
+                key="download_text_speech_mp3",
+                use_container_width=True,
+            )
+
+with tab_team:
+    render_team_workspace(login_row["access_code_display"], login_row["customer_name"])
+
+
+st.caption(f"AI-KHEMRA-BRO v{APP_VERSION} • Minimal Mobile Workspace • Shared Team Workspace • Auto-Fit Khmer Audio")
